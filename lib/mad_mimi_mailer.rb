@@ -122,6 +122,32 @@ class MadMimiMailer < ActionMailer::Base
         response.error!
       end
     end
+    
+    
+    # Add Audience List Membership
+    # POST to http://madmimi.com/audience_lists/NameOfList/add with 3 parameters:
+    # * Your Mad Mimi username
+    # * Your Mad Mimi API Key
+    # * email address of an existing audience member to add to the list
+    def add_audience_list_membership(email, list_name)
+      url = "http://madmimi.com/audience_lists/#{URI.escape(list_name)}/add"
+      params = {
+        'username' => api_settings[:username],
+        'api_key' =>  api_settings[:api_key],
+        'email'   =>  email
+      }
+      response = post_request(url) do |request|
+        request.set_form_data(params)
+      end
+
+      case response
+      when Net::HTTPSuccess
+        response.body
+      else
+        response.error!
+      end
+      
+    end
 
     def content_for(mail, content_type)
       part = mail.parts.detect {|p| p.content_type == content_type }
@@ -137,12 +163,12 @@ class MadMimiMailer < ActionMailer::Base
       end
     end
 
-    def post_request
-      url = URI.parse(SINGLE_SEND_URL)
-      request = Net::HTTP::Post.new(url.path)
+    def post_request(url=SINGLE_SEND_URL)
+      uri = URI.parse(url)
+      request = Net::HTTP::Post.new(uri.path)
       yield(request)
-      http = Net::HTTP.new(url.host, url.port)
-      http.use_ssl = true
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = uri.port == 443
       http.start do |http|
         http.request(request)
       end
